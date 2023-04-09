@@ -3,10 +3,11 @@
 # Your email: pchafetz@umich.edu
 # List who you have worked with on this homework: N/A
 
-import matplotlib.pyplot as plt
-import os
 import sqlite3
 import unittest
+
+import matplotlib.pyplot as plt
+
 
 def load_rest_data(db: str) -> dict[str, dict]:
     """
@@ -37,6 +38,7 @@ def plot_rest_categories(db: str) -> dict[str, int]:
                 GROUP BY categories.category
                 ORDER BY COUNT(*) ASC""")
     items = cur.fetchall()
+    
     ys, xs = zip(*items)
     plt.title("Types of Restaurant on South University Ave")
     plt.xlabel("Number of Restaurants")
@@ -61,7 +63,7 @@ def find_rest_in_building(building_num: int, db: str) -> list[str]:
     return [name for name, in items]
 
 #EXTRA CREDIT
-def get_highest_rating(db): #Do this through DB as well
+def get_highest_rating(db: str) -> list[tuple]:
     """
     This function return a list of two tuples. The first tuple contains the highest-rated restaurant category 
     and the average rating of the restaurants in that category, and the second tuple contains the building number 
@@ -72,11 +74,57 @@ def get_highest_rating(db): #Do this through DB as well
     The second bar chart displays the buildings along the y-axis and their ratings along the x-axis 
     in descending order (by rating).
     """
-    pass
+    conn = sqlite3.connect(db)
+    cur = conn.cursor()
+    cur.execute("""SELECT categories.category, ROUND(AVG(rating), 1) FROM restaurants
+                JOIN categories ON restaurants.category_id = categories.id
+                GROUP BY categories.category
+                ORDER BY ROUND(AVG(rating), 1) ASC""")
+    categories = cur.fetchall()
+    cur.execute("""SELECT buildings.building, ROUND(AVG(rating), 1) FROM restaurants
+                JOIN buildings ON restaurants.building_id = buildings.id
+                GROUP BY buildings.building
+                ORDER BY ROUND(AVG(rating), 1) ASC""")
+    buildings = cur.fetchall()
+    
+    cat_ys, cat_xs = zip(*categories)
+    bld_ys, bld_xs = zip(*buildings)
+    bld_ys_str = [str(bld) for bld in bld_ys]
+    plt.figure(figsize=(8, 8))
+    plot1 = plt.subplot(2, 1, 1)
+    plot2 = plt.subplot(2, 1, 2)
 
-#Try calling your functions here
+    plot1.set_title("Average Restaurant Ratings by Category")
+    plot1.set_xlabel("Ratings")
+    plot1.set_ylabel("Categories")
+    plot1.barh(cat_ys, cat_xs)
+    plot1.set_xlim(0, 5)
+    
+    plot2.set_title("Average Restaurant Ratings by Building")
+    plot2.set_xlabel("Ratings")
+    plot2.set_ylabel("Buildings")
+    plot2.barh(bld_ys_str, bld_xs)
+    plot2.set_xlim(0, 5)
+    return [(cat_ys[-1], cat_xs[-1]), (bld_ys[-1], bld_xs[-1])]
+
+
 def main():
-    pass
+    filename = 'South_U_Restaurants.db'
+    building = 1140
+    
+    rest_data = load_rest_data(filename)
+    print('Restaurant data:\n', rest_data)
+    
+    cat_data = plot_rest_categories(filename)
+    print('\nCategory data:\n', cat_data)
+    
+    rest_list = find_rest_in_building(building, filename)
+    print(f'\nRestaurants in building {building}:\n', rest_list)
+    
+    highest_rating = get_highest_rating(filename)
+    print('\nHighest and average ratings:\n', highest_rating)
+    plt.show()
+
 
 class TestHW8(unittest.TestCase):
     def setUp(self):
