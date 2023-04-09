@@ -8,14 +8,21 @@ import os
 import sqlite3
 import unittest
 
-def load_rest_data(db):
+def load_rest_data(db: str) -> dict[str, dict]:
     """
     This function accepts the file name of a database as a parameter and returns a nested
     dictionary. Each outer key of the dictionary is the name of each restaurant in the database, 
     and each inner key is a dictionary, where the key:value pairs should be the category, 
     building, and rating for the restaurant.
     """
-    pass
+    conn = sqlite3.connect(db)
+    cur = conn.cursor()
+    cur.execute("""SELECT name, categories.category, buildings.building, rating FROM restaurants
+                JOIN categories ON restaurants.category_id = categories.id
+                JOIN buildings ON restaurants.building_id = buildings.id""")
+    items = cur.fetchall()
+    return {name: {'category': category, 'building': building, 'rating': rating} 
+            for name, category, building, rating in items}
 
 def plot_rest_categories(db):
     """
